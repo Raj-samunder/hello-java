@@ -21,7 +21,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t rajsamunder2007/hello-java:latest .'
+                sh 'docker build -t rajsamunder2004/hello-java:latest .'
             }
         }
 
@@ -29,7 +29,7 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
                     sh 'echo $PASS | docker login -u $USER --password-stdin'
-                    sh 'docker push rajsamunder2007/hello-java:latest'
+                    sh 'docker push rajsamunder2004/hello-java:latest'
                 }
             }
         }

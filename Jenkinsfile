@@ -2,43 +2,49 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CRED = credentials('docker-hub-creds')
-        GIT_CRED = credentials('c71ae4c6-b684-43b7-9039-0f500f4c84aa')
+        DOCKERHUB_CREDENTIALS = credentials('TestDocker') // DockerHub creds in Jenkins
     }
 
     stages {
-        stage('Checkout') {
+        stage("Git Checkout") {
             steps {
-                git branch: 'main', url: 'https://github.com/Raj-samunder/hello-java.git', credentialsId: 'c71ae4c6-b684-43b7-9039-0f500f4c84aa'
+                git 'https://github.com/yourusername/hello-world-java.git'
             }
         }
 
-        stage('Build Java') {
+        stage("Maven Build") {
             steps {
-                sh 'mvn clean package'
+                sh "mvn clean package"
             }
         }
 
-        stage('Build Docker Image') {
+        stage("Build & Push Docker Image") {
             steps {
-                sh 'docker build -t rajsamunder2004/hello-java:latest .'
+                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+                sh "docker build -t YOUR_DOCKERHUB_USERNAME/hello-world-java:latest ."
+                sh "docker push YOUR_DOCKERHUB_USERNAME/hello-world-java:latest"
             }
         }
 
-        stage('Push Docker Image') {
+        stage("K8s Deployment") {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-                    sh 'echo $PASS | docker login -u $USER --password-stdin'
-                    sh 'docker push rajsamunder2004/hello-java:latest'
+                sh "kubectl apply -f k8s-deploy.yml"
+            }
+        }
+    }
+
+    post {
+        always {
+            node {
+                script {
+                    if(currentBuild.currentResult == 'FAILURE') {
+                        step([$class: 'Mailer', 
+                              notifyEveryUnstableBuild: true, 
+                              recipients: 'Test@test.com', 
+                              sendToIndividuals: true])
+                    }
                 }
-            }
-        }
-
-        stage('Deploy to Kubernetes') {
-            steps {
-                sh 'sudo k3s kubectl apply -f deployment.yaml'
             }
         }
     }
 }
-
